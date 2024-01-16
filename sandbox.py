@@ -3,7 +3,7 @@ import pickle
 import pandas as pd
 from pathlib import Path
 
-data_path = Path('output', "VitPose")
+data_path_vit = Path('data', 'output', "VitPose")
 
 
 if __name__ == '__main__':
@@ -11,7 +11,7 @@ if __name__ == '__main__':
     for year in range(1980, 2023):
         print('-------------------')
         print(year)
-        year_path = data_path / str(year)
+        year_path = data_path_vit / str(year)
 
         data[year] = []
         for i, file in enumerate(year_path.glob('*.pkl')):

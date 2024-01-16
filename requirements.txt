@@ -8,3 +8,8 @@ pandas
 tensorflow
 keras
 openpifpaf
+python-dotenv
+selenium
+opencv-python
+ultralytics
+git+https://github.com/developer0hye/onepose.git

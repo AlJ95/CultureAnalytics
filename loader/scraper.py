@@ -9,8 +9,8 @@ TITLE_CLASS = "hero__primary-text"
 INFORMATION_CLASS = ".ipc-metadata-list.ipc-metadata-list--dividers-all.title-pc-list.ipc-metadata-list--baseAlt"
 
 
-class VintedScraper:
-    """Class for scraping the website vinted.de"""
+class IMDBScraper:
+    """Class for scraping the website IMDB.com"""
     scraper_instances = 0
 
     BASE_URL = "https://www.imdb.com/title/{imdb_id}/"
@@ -36,7 +36,7 @@ class VintedScraper:
         for tid in self.imdb_ids.values:
             try:
                 self.get_page(driver, tid)
-                self.data.append(self.get_information(driver, tid))
+                self.data.append(IMDBScraper.get_information(driver, tid))
                 self.count += 1
             except Exception as e:
                 self.save_data()
@@ -44,7 +44,8 @@ class VintedScraper:
                 print(f"Error for {tid}: {e}")
                 raise e
 
-    def init_driver(self):
+    @staticmethod
+    def init_driver():
         """Initializes the driver"""
         driver = webdriver.Firefox()
 
@@ -53,9 +54,9 @@ class VintedScraper:
 
         position = [(x, y) for _ in range(20) for x in range(0, 1920, 480) for y in range(0, 1080, 539)]
 
-        driver.set_window_position(*position[VintedScraper.scraper_instances])
+        driver.set_window_position(*position[IMDBScraper.scraper_instances])
 
-        VintedScraper.scraper_instances += 1
+        IMDBScraper.scraper_instances += 1
 
         return driver
 
@@ -63,10 +64,11 @@ class VintedScraper:
         """Gets the page"""
         if self.count % 50 == 0:
             print(f"{self.year}: {int(round(self.count / len(self.imdb_ids) * 100))}% done")
-        driver.get(VintedScraper.BASE_URL.format(imdb_id=tid))
+        driver.get(IMDBScraper.BASE_URL.format(imdb_id=tid))
         driver.implicitly_wait(3)
 
-    def get_information(self, driver, tid):
+    @staticmethod
+    def get_information(driver, tid):
         """Gets the items"""
         # get full page
         html = driver.page_source
@@ -86,7 +88,7 @@ class VintedScraper:
             image_alt = image.get_attribute("alt")
             image_srcset = image.get_attribute("srcset")
             success_image_information = bool(image_url) and bool(image_alt) and bool(image_srcset)
-        except:
+        except selenium.common.exceptions.NoSuchElementException:
             image_url = None
             image_alt = None
             image_srcset = None
@@ -124,8 +126,8 @@ if __name__ == '__main__':
 
     irobot = data.loc[data.titleId == "tt0343818"]
 
-    imdb_ids = irobot.titleId
-    year = irobot.startYear.values[0]
+    ids = irobot.titleId
+    start_year = irobot.startYear.values[0]
 
-    scraper = VintedScraper(imdb_ids, year)
+    scraper = IMDBScraper(ids, start_year)
     scraper.scrape_all_information()
