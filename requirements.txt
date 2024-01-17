@@ -1,6 +1,6 @@
-torch==1.13.1
-torchvision==0.14.1
-torchaudio==0.13.1
+# torch==2.1.2+cu121
+# torchvision==2.1.2+cu121
+# torchaudio==0.16.2+cu121
 transformers
 numpy
 matplotlib
@@ -11,5 +11,7 @@ openpifpaf
 python-dotenv
 selenium
 opencv-python
+scikit-learn
+plotly
 ultralytics
 git+https://github.com/developer0hye/onepose.git
