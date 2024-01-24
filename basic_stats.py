@@ -47,7 +47,7 @@ def sample_data():
     for year in range(1980, 2023):
         sampled_data = pd.concat([sampled_data, data.loc[data.startYear.astype(int) == year].sample(1300)])
 
-    sampled_data.to_csv(IMDB_IMAGE_DATA_SAMPLED_PATH / "sampled_1800.csv", encoding="utf-8", sep="\t")
+    # sampled_data.to_csv(IMDB_IMAGE_DATA_SAMPLED_PATH / "sampled_1800.csv", encoding="utf-8", sep="\t")
 
     for year in range(1980, 2023):
         # count images in folder

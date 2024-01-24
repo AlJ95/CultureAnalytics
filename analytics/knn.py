@@ -20,19 +20,30 @@ def calculate_angle(vec1, vec2):
     :return: angle in degrees
     """
     angle = np.arccos(np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2)))
-    return np.degrees(angle)
+    return 0 if np.isnan(np.degrees(angle)) else np.degrees(angle)
+
+
+def calculate_unit_circle_pos(vec1, vec2):
+    angle = np.arccos(np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2)))
+
+    angle = np.array([np.cos(angle), np.sin(angle)])
+
+    if any(np.isnan(angle)):
+        angle = np.zeros((2,))
+
+    return angle
 
 
 if __name__ == '__main__':
 
-    # body_connections = [[0, 1], [0, 2], [1, 3], [2, 4], [5, 6], [5, 7], [7, 9], [6, 8], [8, 10], [5, 11], [6, 12],
-    #                     [11, 12], [11, 13], [13, 15], [12, 14], [14, 16]]
-    body_connections = [[i, j] for i in range(17) for j in range(17) if i < j]
+    body_connections = [[0, 1], [0, 2], [1, 3], [2, 4], [5, 6], [5, 7], [7, 9], [6, 8], [8, 10], [5, 11], [6, 12],
+                        [11, 12], [11, 13], [13, 15], [12, 14], [14, 16]]
+    # body_connections = [[i, j] for i in range(17) for j in range(17) if i < j]
 
     pickle_paths = get_all_vitpose_pickle_paths()
     pose_data_raw = {pickle_path.stem: pd.read_pickle(pickle_path) for pickle_path in pickle_paths}
     pose_data = {key: pose["points"] for key, pose in pose_data_raw.items()
-                 if np.median(pose["confidence"]) > 0.75 and pose["confidence"].min() > 0.1
+                 if np.median(pose["confidence"]) > 0.75 and pose["confidence"].min() > 0.25
                  and (~np.isnan(pose["points"])).all()}
 
     # plot lines between keypoints on image
@@ -46,10 +57,7 @@ if __name__ == '__main__':
             vec_y = [pose[p1][y], pose[p2][y]]
 
             # calculate angle between two vectors
-            angle = calculate_angle(np.array(vec_x), np.array(vec_y))
-
-            if np.isnan(angle):
-                angle = 0
+            angle = calculate_unit_circle_pos(np.array(vec_x), np.array(vec_y))
 
             angle_set.append(angle)
 
@@ -69,7 +77,10 @@ if __name__ == '__main__':
     """
 
     # convert angles to numpy array
-    angles = np.array(angles)
+    if isinstance(angle, np.float32):
+        angles = np.array(angles)
+    else:
+        angles = np.array([[x for y in angle_set for x in y] for angle_set in angles])
 
     # create k-means model
     kmeans = KMeans(n_clusters=16, random_state=0).fit(angles)
@@ -137,9 +148,11 @@ if __name__ == '__main__':
 
     collage_samples = [df.loc[df["cluster"] == cluster, "label"] for cluster in range(16)]
     collage_samples = [data.sample(min(len(data), 60)) for data in collage_samples]
-    collage_samples = [list(data.apply(lambda x: get_image_path_by_imdb_id(x, use_vitpose_image=True))) for data in collage_samples]
+    collage_samples = [list(data.apply(lambda x: get_image_path_by_imdb_id(x, use_vitpose_image=True))) for data in
+                       collage_samples]
 
     input("Du wirst gleich alte Speicherstände überschreiben. Drücke Enter zum Fortfahren.")
     for i, cluster in enumerate(collage_samples):
         print(f"Cluster {i} has {len(cluster)} samples")
-        plot_image_collage(cluster, f"cluster_{i}", RESULTS_PATH / "tsne cluster all years n=16 angle cross product all body parts")
+        plot_image_collage(cluster, f"cluster_{i}",
+                           RESULTS_PATH / "tsne cluster all years n=16 unit circle pos rel body parts min_conf 0 25")
