@@ -47,6 +47,10 @@ def get_all_file_paths(path: Path, suffix: str | None, year: int | None) -> List
                   for x in path.iterdir() if path.is_dir()
                   if x.is_file()]
 
+    if not file_paths:
+        file_paths = [x for x in Path(path).iterdir() if path.is_dir()
+                      if x.is_file()]
+
     if suffix:
         file_paths = [x for x in file_paths if x.suffix == suffix]
 
@@ -62,8 +66,12 @@ def get_all_sampled_image_paths(year=None) -> List[Path]:
 
 
 @lru_cache(maxsize=35)
-def get_all_sampled_html_file_paths(year=None) -> List[Path]:
-    return get_all_file_paths(IMDB_HTML_DATA_SAMPLED_PATH, ".html", year)
+def get_all_sampled_html_file_paths(information=False) -> List[Path]:
+    paths = get_all_file_paths(IMDB_HTML_DATA_SAMPLED_PATH, ".html", None)
+    if information:
+        return [p for p in paths if "information" in p.name]
+    else:
+        return [p for p in paths if "information" not in p.name]
 
 
 @lru_cache(maxsize=35)
@@ -72,13 +80,15 @@ def get_all_sampled_image_urls_file_paths() -> List[Path]:
 
 
 @lru_cache(maxsize=35)
-def get_all_vitpose_pickle_paths() -> List[Path]:
-    return get_all_file_paths(VITPOSE_PATH, ".pkl", None)
+def get_all_vitpose_pickle_paths(box_clips=True) -> List[Path]:
+    sub_path = "box_clips" if box_clips else "full_images"
+    return get_all_file_paths(VITPOSE_PATH / sub_path, ".pkl", None)
 
 
 @lru_cache(maxsize=35)
-def get_all_vitpose_image_paths() -> List[Path]:
-    return get_all_file_paths(VITPOSE_PATH, ".jpg", None)
+def get_all_vitpose_image_paths(box_clips=True) -> List[Path]:
+    sub_path = "box_clips" if box_clips else "full_images"
+    return get_all_file_paths(VITPOSE_PATH / sub_path, ".jpg", None)
 
 
 def show_image_by_imdb_id(imdb_id: str) -> Path:

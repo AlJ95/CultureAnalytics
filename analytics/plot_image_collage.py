@@ -13,7 +13,6 @@ def plot_image_collage(image_paths: List[Path], name: str, path: Path):
     :param image_paths: List of image paths
     :param name: Name of the image collage to be saved
     """
-    path.mkdir(exist_ok=False)
 
     if len(image_paths) > 60:
         raise ValueError("Only 60 images can be plotted in one row")
