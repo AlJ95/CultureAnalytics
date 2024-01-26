@@ -12,7 +12,7 @@ import onepose
 from pathlib import Path
 import pickle
 
-detection_model = YOLO("yolov8m.pt")
+detection_model = YOLO("yolov8m.pt").to("cuda")
 
 pose_estimation_model = onepose.create_model().to("cuda")
 
@@ -21,16 +21,19 @@ for year in range(2022, 1980, -1):
     print()
     print(year)
     print()
-    Path(f"output/{year}").mkdir(parents=True, exist_ok=True)
+    Path(f"data/output/VitPose/box_clips/{year}").mkdir(parents=True, exist_ok=True)
 
-    sub_paths = [sp for sp in Path(f"./imdb_image_data_sampled/{year}").iterdir() if sp.suffix == ".jpg"]
+    sub_paths = [sp for sp in Path(f"./data/imdb_image_data_sampled/{year}").iterdir() if sp.suffix == ".jpg"]
+
+    # do 100s batches
+    sub_path_batches = [sub_paths[i:i + 100] for i in range(0, len(sub_paths), 100)]
+
     for i, img_path in enumerate(sub_paths):
 
         if i % 25 == 0:
             print(f"{year}: {i} - {i / len(list(sub_paths)) * 100:.2f}%")
 
         img = cv2.imread(str(img_path))
-        draw_img = img.copy()
 
         results = detection_model(img, verbose=False)[0]
         boxes = results.boxes.xyxy
@@ -41,6 +44,8 @@ for year in range(2022, 1980, -1):
             if cls != 0:
                 continue
 
+            draw_img = img.copy()
+
             x1, y1, x2, y2 = box
             # crop image
             person_img = img[int(y1):int(y2), int(x1):int(x2)]
@@ -49,18 +54,17 @@ for year in range(2022, 1980, -1):
             keypoints = pose_estimation_model(person_img)
             num_keypoints = len(keypoints['points'])
 
-            for i in range(num_keypoints):
-                keypoints['points'][i][0] += x1
-                keypoints['points'][i][1] += y1
+            # for j in range(num_keypoints):
+            #     keypoints['points'][j][0] += x1
+            #     keypoints['points'][j][1] += y1
 
-            onepose.visualize_keypoints(draw_img, keypoints, pose_estimation_model.keypoint_info,
+            onepose.visualize_keypoints(person_img, keypoints, pose_estimation_model.keypoint_info,
                                         pose_estimation_model.skeleton_info)
 
             # save keypoints
-            with open(f"output/{year}/{img_path.stem}_{i}.pkl", "wb") as f:
+            with open(f"./data/output/VitPose/box_clips/{year}/{img_path.stem}_{i}.pkl", "wb") as f:
                 pickle.dump(keypoints, f)
 
-        cv2.imwrite(f"output/{year}/{img_path.name}", draw_img)
-        cv2.waitKey(0)
+            cv2.imwrite(f"./data/output/VitPose/box_clips/{year}/{img_path.stem}_{i}{img_path.suffix}", person_img)
 
 

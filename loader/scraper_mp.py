@@ -17,15 +17,20 @@ def start_scraper(scraper: IMDBScraper):
 
 
 if __name__ == '__main__':
+    # init multiprocessing
     cpu_count = mp.cpu_count()
     pool = mp.Pool(3)
 
+    # set all years
     years = list(range(1980, 2023))
 
+    # load sampled data
     sampled_data = pd.read_csv(IMDB_IMAGE_DATA_SAMPLED_PATH / "sampled_1800.csv", encoding="utf-8", sep="\t")
 
+    # get all downloaded images
     downloaded_images = [path.stem for path in get_all_sampled_image_paths()]
 
+    # get all imdb ids for each year as dict and filter out already downloaded images
     imdb_ids = {
         year: sampled_data.loc[
             # year condition and not downloaded yet

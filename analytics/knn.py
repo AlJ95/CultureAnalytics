@@ -3,48 +3,28 @@ from sklearn.cluster import KMeans
 import pandas as pd
 import numpy as np
 from utils.helper import get_all_vitpose_pickle_paths, RESULTS_PATH
-
-labels = {0: 'nose', 1: 'left_eye', 2: 'right_eye', 3: 'left_ear', 4: 'right_ear', 5: 'left_shoulder',
-          6: 'right_shoulder', 7: 'left_elbow', 8: 'right_elbow', 9: 'left_wrist',
-          10: 'right_wrist', 11: 'left_hip',
-          12: 'right_hip', 13: 'left_knee',
-          14: 'right_knee', 15: 'left_ankle',
-          16: 'right_ankle'}
+from angle import calculate_unit_circle_pos
+from const import *
 
 
-def calculate_angle(vec1, vec2):
+def filter_pose_data(pose_data_raw, median_confidence=0.75, min_confidence=0.25):
     """
-    Calculate the angle between two vectors.
-    :param vec1: vector 1
-    :param vec2: vector 2
-    :return: angle in degrees
+    Filter pose data by median confidence and minimum confidence
+    :param pose_data_raw: dict of pose data
+    :param median_confidence: median confidence of all keypoints
+    :param min_confidence: minimum confidence of all keypoints
+    :return: filtered pose data as dict
     """
-    angle = np.arccos(np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2)))
-    return 0 if np.isnan(np.degrees(angle)) else np.degrees(angle)
-
-
-def calculate_unit_circle_pos(vec1, vec2):
-    angle = np.arccos(np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2)))
-
-    angle = np.array([np.cos(angle), np.sin(angle)])
-
-    if any(np.isnan(angle)):
-        angle = np.zeros((2,))
-
-    return angle
+    return {key: pose["points"] for key, pose in pose_data_raw.items()
+            if np.median(pose["confidence"]) > median_confidence and pose["confidence"].min() > min_confidence
+            and (~np.isnan(pose["points"])).all()}
 
 
 if __name__ == '__main__':
 
-    body_connections = [[0, 1], [0, 2], [1, 3], [2, 4], [5, 6], [5, 7], [7, 9], [6, 8], [8, 10], [5, 11], [6, 12],
-                        [11, 12], [11, 13], [13, 15], [12, 14], [14, 16]]
-    # body_connections = [[i, j] for i in range(17) for j in range(17) if i < j]
-
     pickle_paths = get_all_vitpose_pickle_paths()
     pose_data_raw = {pickle_path.stem: pd.read_pickle(pickle_path) for pickle_path in pickle_paths}
-    pose_data = {key: pose["points"] for key, pose in pose_data_raw.items()
-                 if np.median(pose["confidence"]) > 0.75 and pose["confidence"].min() > 0.25
-                 and (~np.isnan(pose["points"])).all()}
+    pose_data = filter_pose_data(pose_data_raw)
 
     # plot lines between keypoints on image
     angles = []
@@ -60,15 +40,6 @@ if __name__ == '__main__':
             angle = calculate_unit_circle_pos(np.array(vec_x), np.array(vec_y))
 
             angle_set.append(angle)
-
-            # plt.plot(vec_x, vec_y, linewidth=2, marker='o',
-            #          markersize=0.5, markerfacecolor='red', markeredgecolor='red')
-
-        # plot keypoints on image
-        # plt.scatter(pose_example[:, 0], pose_example[:, 1], s=20, c='r')
-
-        # plt.imshow(image)
-        # plt.show()
 
         angles.append(angle_set)
 
