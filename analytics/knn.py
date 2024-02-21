@@ -7,6 +7,8 @@ Hyperparameter:
 """
 import plotly.express as px
 from scipy.spatial import distance
+
+from analytics.cleaning import read_metadata, get_all_genres
 from analytics.plot_image_collage import plot_image_collage
 from utils.helper import get_image_path_by_imdb_id
 from pathlib import WindowsPath
@@ -41,7 +43,8 @@ def filter_pose_data(pose_data_raw, median_confidence=0.75, min_confidence=0.25)
             and (~np.isnan(pose["points"])).all()}
 
 
-def calculate_angles(pose_data: dict, body_connections: List[Tuple[int]]) -> List[List[Tuple[int]]]:
+def calculate_angles(pose_data: dict, body_connections: List[Tuple[int]],
+                     backbone_angle=True) -> List[List[Tuple[int]]]:
     # plot lines between keypoints on image
     angles = []
     for pose in pose_data.values():
@@ -57,6 +60,8 @@ def calculate_angles(pose_data: dict, body_connections: List[Tuple[int]]) -> Lis
 
             angle_set.append(angle)
 
+        vec_x = [0, 1]
+        vec_y = [pose[p1][y], pose[p2][y]]
         angles.append(angle_set)
 
     return angles
@@ -76,7 +81,20 @@ def join_with_metadata(pose_dict: dict, pickle_paths: List[WindowsPath]):
 
     pose_df = pose_df.join(year_df)
 
-    return pose_df
+    pose_df.loc[:, "join_index"] = pose_df.index.str.replace(r"_\d*$", "", regex=True)
+    metadata = read_metadata()
+    metadata.index.name = "join_index"
+    pose_df = pose_df.join(metadata, on="join_index")
+
+    pose_df.loc[:, metadata.columns] = pose_df.loc[:, metadata.columns].fillna(0)
+
+    pose_df.loc[:, "join_index"] = pose_df.index
+    metadata = read_metadata("sex")
+    metadata.columns = ["join_index", "sex"]
+    metadata = metadata.set_index("join_index")
+    pose_df = pose_df.join(metadata, on="join_index")
+
+    return pose_df.drop(columns=["join_index"])
 
 
 if __name__ == '__main__':
@@ -87,31 +105,36 @@ if __name__ == '__main__':
     # Hyperparameter Tuning
     median_confidence = 0.75
     min_confidence = 0.25
-    n_clusters = [16, 24]
-    body_connection_names = [f"body_connections_{i}" for i in range(1, 4)] + ["body_connections_full"]
-    cluster_names = ["KMeans", "AgglomerativeClustering"] # "SpectralClustering"
-    dim_red_algorithms = ["tsne", "PCA"]
+    n_clusters = [16]  # [14, 15, 17, 18]
+    body_connection_names = [
+        "body_connections_2"]  # [f"body_connections_{i}" for i in range(1, 4)] + ["body_connections_full"]
+    cluster_names = ["KMeans"]  # "SpectralClustering", "AgglomerativeClustering"
+    dim_red_algorithms = ["tsne"]  # ["tsne", "PCA"]
     years = []
-    genre = None
+    genres = [None]  # get_all_genres()
     sex = None
 
-    combinations = [(n_cluster, body_connection_name, cluster_name, dim_red_algorithm)
+    combinations = [(n_cluster, body_connection_name, cluster_name, dim_red_algorithm, genre)
                     for n_cluster in n_clusters
                     for body_connection_name in body_connection_names
                     for cluster_name in cluster_names
                     for dim_red_algorithm in dim_red_algorithms
+                    for genre in genres
                     ]
 
     for i, combination in enumerate(combinations):
         print(i + 1, "/", len(combinations))
 
-        n_cluster, body_connection_name, cluster_name, dim_red_algorithm = combination
+        n_cluster, body_connection_name, cluster_name, dim_red_algorithm, genre = combination
 
         pose_data_raw = pd.read_pickle("./data/output/VitPose/box_clips/all_data.pkl")
         pose_data = filter_pose_data(pose_data_raw, median_confidence=0.75, min_confidence=0.25)
 
         # filter for Hyperparameter
         pose_data = join_with_metadata(pose_dict=pose_data, pickle_paths=pickle_paths)
+
+        if genre:
+            pose_data = pose_data.loc[pose_data.loc[:, genre] == 1]
 
         if years:
             pose_data = pose_data.loc[pose_data.Year.isin(years), :]
@@ -180,6 +203,8 @@ if __name__ == '__main__':
         df["cluster"] = df.cluster.astype("category")
         df["distance_to_center"] = distance_to_center
         df["cluster_size"] = cluster_sizes[df["cluster"].cat.codes]
+        df = df.set_index("label").join(pose_data).reset_index()
+        df = df.loc[df.sex != "NA"]
 
         # create figure
         fig = px.scatter(df,
@@ -187,7 +212,8 @@ if __name__ == '__main__':
                          y="y",
                          color="cluster",
                          color_discrete_sequence=px.colors.qualitative.Plotly,
-                         symbol="cluster",
+                         symbol="sex",
+                         symbol_sequence= ['circle', 'circle-open'],
                          hover_data=["label", "cluster_size", "distance_to_center"]
                          )
 
@@ -201,6 +227,8 @@ if __name__ == '__main__':
                 f"med_conf_limit={int(median_confidence * 100)}% - "
                 f"min_conf_limit={int(min_confidence * 100)}%"
         )
+        path.mkdir(exist_ok=True)
+        path = path / genre
         path.mkdir(exist_ok=True)
 
         fig.write_html(path / "Cluster Plot.html")
@@ -230,10 +258,17 @@ if __name__ == '__main__':
             "Davis Bouldin Score": davies_bouldin_score(angles, labels),
             "Variance of Higher Dimensional Data": angles.var(),
             "Variance of 2D Data": angles_2d.var(),
-            "% Lost Variance": 1 - angles_2d.var() / angles.var()
+            "% Lost Variance": 1 - angles_2d.var() / angles.var(),
+            "Genre": genre
         }, index=[1])
 
         pd.concat([
             pd.read_csv(EVAL_PATH, sep=";", decimal=","),
             result
         ], ignore_index=True).to_csv(EVAL_PATH, sep=";", decimal=",", index=False)
+
+        sex_cluster_representation = df.groupby(["cluster", "sex"]).count().reset_index().pivot(index="cluster",
+                                                                                                columns="sex",
+                                                                                                values="label")
+        sex_cluster_representation = sex_cluster_representation.apply(lambda x: x.F / (x.M + x.F), axis=1).sort_values()
+        print(sex_cluster_representation)

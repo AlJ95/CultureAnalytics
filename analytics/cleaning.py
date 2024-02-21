@@ -1,21 +1,27 @@
+from pathlib import Path
+
 import pandas as pd
 import re
 from bs4 import BeautifulSoup
 
 from utils.helper import get_all_sampled_html_file_paths
 
-
 GENRE_CLASS_NAME = "ipc-chip ipc-chip--on-baseAlt"
 RATING_CLASS_NAME = "sc-bde20123-1 cMEQkK"
 
-if __name__ == '__main__':
+data_path = Path("./data/")
 
+if not data_path.exists():
+    data_path = Path("../data/")
+
+
+def extract_html_information():
     metadata = pd.DataFrame([], columns=["tid", "Genres", "Rating"])
 
     paths = get_all_sampled_html_file_paths()
 
     for i, path in enumerate(paths):
-        if i < 17375:
+        if i < 35001:
             continue
 
         if i % 100 == 0:
@@ -44,4 +50,33 @@ if __name__ == '__main__':
             pd.DataFrame([[path.stem, genres, rating]], columns=["tid", "Genres", "Rating"])
         ], ignore_index=True)
 
-    metadata.to_csv("./data/metadata2.csv")
+        if i % 1000 == 0:
+            metadata.to_csv(f"./data/metadata{i}.csv")
+            metadata = pd.DataFrame([], columns=["tid", "Genres", "Rating"])
+
+    metadata.to_csv(f"./data/metadata{i}.csv")
+
+
+def read_metadata(type="genres"):
+    return pd.read_pickle(data_path / f"metadata_{type}.pickle")
+
+
+def get_all_genres():
+    return read_metadata(type="genres").columns.tolist()
+
+
+if __name__ == '__main__':
+    metadata = [pd.read_csv(fp) for fp in data_path.iterdir() if fp.stem.startswith("metadata") and fp.suffix == ".csv"]
+    metadata = pd.concat(metadata)
+    metadata = metadata.loc[~pd.isna(metadata.Genres)]
+
+    all_genres = metadata.Genres.str.split(";").explode().unique().tolist()
+
+    metadata.loc[:, "Genres Exploded"] = metadata.Genres.str.split(";")
+    metadata = metadata.explode("Genres Exploded")
+    metadata = metadata.loc[:, ["tid", "Genres Exploded"]]
+    metadata.loc[:, "value"] = 1
+
+    metadata = metadata.pivot(index="tid", columns="Genres Exploded", values="value").fillna(0)
+
+    metadata.to_pickle(data_path / "metadata_genres.pickle")
