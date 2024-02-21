@@ -5,6 +5,8 @@ Hyperparameter:
     1) Body Connections - Which body parts will be addressed in clustering?
     2)
 """
+import itertools
+
 import plotly.express as px
 from scipy.spatial import distance
 
@@ -50,18 +52,33 @@ def calculate_angles(pose_data: dict, body_connections: List[Tuple[int]],
     for pose in pose_data.values():
 
         angle_set = []
-        for p1, p2 in body_connections:
+        for (p1, p2), (p3, p4) in itertools.combinations(body_connections, 2):
             x, y = 0, 1
-            vec_x = [pose[p1][x], pose[p2][x]]
-            vec_y = [pose[p1][y], pose[p2][y]]
+            vec_1 = np.array(pose[p1])
+            vec_2 = np.array(pose[p2])
+            vec_3 = np.array(pose[p3])
+            vec_4 = np.array(pose[p4])
+
+            vec_12 = vec_1 - vec_2
+            vec_34 = vec_3 - vec_4
 
             # calculate angle between two vectors
-            angle = calculate_unit_circle_pos(np.array(vec_x), np.array(vec_y))
+            angle = calculate_unit_circle_pos(vec_12, vec_34)
 
             angle_set.append(angle)
 
-        vec_x = [0, 1]
-        vec_y = [pose[p1][y], pose[p2][y]]
+        if backbone_angle:
+            vec_12 = np.array([0, 1])
+
+            vec_1 = np.array(pose[9])   # left_wrist
+            vec_2 = np.array(pose[10])  # right_wrist
+            vec_3 = np.array(pose[11])  # left_hip
+            vec_4 = np.array(pose[12])  # right_hip
+
+            vec_34 = np.mean(np.vstack([vec_1, vec_2]), axis=1) - np.mean(np.vstack([vec_3, vec_4]), axis=1)
+            angle = calculate_unit_circle_pos(vec_12, vec_34)
+            angle_set.append(angle)
+
         angles.append(angle_set)
 
     return angles
@@ -105,9 +122,8 @@ if __name__ == '__main__':
     # Hyperparameter Tuning
     median_confidence = 0.75
     min_confidence = 0.25
-    n_clusters = [16]  # [14, 15, 17, 18]
-    body_connection_names = [
-        "body_connections_2"]  # [f"body_connections_{i}" for i in range(1, 4)] + ["body_connections_full"]
+    n_clusters = [32, 48]
+    body_connection_names = [f"body_connections_{i}" for i in range(1, 4)] + ["body_connections_full"]
     cluster_names = ["KMeans"]  # "SpectralClustering", "AgglomerativeClustering"
     dim_red_algorithms = ["tsne"]  # ["tsne", "PCA"]
     years = []
@@ -228,14 +244,15 @@ if __name__ == '__main__':
                 f"min_conf_limit={int(min_confidence * 100)}%"
         )
         path.mkdir(exist_ok=True)
-        path = path / genre
-        path.mkdir(exist_ok=True)
+        if genre:
+            path = path / genre
+            path.mkdir(exist_ok=True)
 
         fig.write_html(path / "Cluster Plot.html")
 
         collage_samples = [df.loc[df["cluster"] == cluster] for cluster in range(n_cluster)]
         # collage_samples = [data.sample(min(len(data), 60)).loc[:, , "label"] for data in collage_samples]
-        collage_samples = [data.sort_values("distance_to_center").loc[:, "label"].iloc[:20] for data in collage_samples]
+        collage_samples = [data.sort_values("distance_to_center").loc[:, "label"].iloc[:60] for data in collage_samples]
         collage_samples = [list(data.apply(lambda x: get_image_path_by_imdb_id(x, use_vitpose_image=True))) for data in
                            collage_samples]
 
