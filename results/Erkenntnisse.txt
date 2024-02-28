@@ -1,1 +1,0 @@
-tsne cluster all years n=16 -> Cluster 0: Frauen mit gewinkelten Beinen

@@ -13,6 +13,7 @@ IMDB_DATA_POST_PROCESSED_PATH = Path("data", "imdb_data_post_processed")
 OUTPUT_PATH = DATA_PATH / "output"
 VITPOSE_PATH = OUTPUT_PATH / "VitPose"
 RESULTS_PATH = Path("results")
+OUTPUT_FULL_IMAGES_PATH = VITPOSE_PATH / Path("full_images")
 
 
 @lru_cache(maxsize=1)
@@ -90,6 +91,9 @@ def get_all_vitpose_image_paths(box_clips=True) -> List[Path]:
     sub_path = "box_clips" if box_clips else "full_images"
     return get_all_file_paths(VITPOSE_PATH / sub_path, ".jpg", None)
 
+@lru_cache(maxsize=35)
+def get_all_output_full_image_paths() -> List[Path]:
+    return get_all_file_paths(OUTPUT_FULL_IMAGES_PATH, ".jpg", None)
 
 def show_image_by_imdb_id(imdb_id: str) -> Path:
     """
