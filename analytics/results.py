@@ -1,5 +1,6 @@
 from shutil import copy
-
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import pandas as pd
 import plotly.graph_objects as go
 from utils.helper import RESULTS_PATH, get_all_output_full_image_paths
@@ -36,63 +37,81 @@ fig.show()
 # Homogenity seems to increase over time
 
 """Genre Results"""
-data_paths_noAR_noKR = [sp / "data.pickle" for sp in RESULTS_PATH.iterdir()
-                        if sp.name.startswith("K14P") and sp.name.endswith("noKR") and sp.is_dir() and "allG" in sp.name]
+if False:
+    data_paths_noAR_noKR = [sp / "data.pickle" for sp in RESULTS_PATH.iterdir()
+                            if sp.name.startswith("K14P") and sp.name.endswith("noKR") and sp.is_dir() and "allG" in sp.name]
 
-data_paths_AR_noKR = [sp / "data.pickle" for sp in (RESULTS_PATH / "arm_ranges").iterdir()
-                      if sp.name.startswith("K14P") and sp.name.endswith("ARnoKR") and sp.is_dir() and "allG" in sp.name]
+    data_paths_AR_noKR = [sp / "data.pickle" for sp in (RESULTS_PATH / "arm_ranges").iterdir()
+                          if sp.name.startswith("K14P") and sp.name.endswith("ARnoKR") and sp.is_dir() and "allG" in sp.name]
 
-data_paths_AR_KR = [sp / "data.pickle" for sp in (RESULTS_PATH / "arm_ranges").iterdir()
-                    if sp.name.startswith("K14P") and sp.name.endswith("ARKR") and sp.is_dir() and "allG" in sp.name]
+    data_paths_AR_KR = [sp / "data.pickle" for sp in (RESULTS_PATH / "arm_ranges").iterdir()
+                        if sp.name.startswith("K14P") and sp.name.endswith("ARKR") and sp.is_dir() and "allG" in sp.name]
 
 
-def plot_results(data_paths, title_suffix):
-    full_data = pd.concat([pd.read_pickle(sp) for sp in data_paths], ignore_index=True)
-    full_data.loc[:, "Women_Percentage"] = full_data.Men_Percentage  # Fix wrong column name
-    full_data = full_data.drop(columns=["Men_Percentage"])
-    genres = full_data.iloc[:, 9:-20].sum().loc[full_data.iloc[:, 9:-20].sum() > 50].index
+    def plot_results(data_paths, title_suffix):
+        full_data = pd.concat([pd.read_pickle(sp) for sp in data_paths], ignore_index=True)
+        full_data.loc[:, "Women_Percentage"] = full_data.Men_Percentage  # Fix wrong column name
+        full_data = full_data.drop(columns=["Men_Percentage"])
+        genres = full_data.iloc[:, 9:-20].sum().loc[full_data.iloc[:, 9:-20].sum() > 50].index
 
-    genre_demographics = pd.Series(index=genres, dtype=float)
-    genre_results = pd.Series(index=genres, dtype=float)
-    for genre in genres:
-        genre_demographics[genre] = full_data.loc[full_data.loc[:, genre].astype(bool), "Women_Percentage"].mean()
-        genre_results[genre] = full_data.loc[full_data.loc[:, genre].astype(bool), "Women_Percentage"].unique().std()
+        # ToDo That is not how it should be analysed.
+        #   Genre are clustered separately
+        genre_demographics = pd.Series(index=genres, dtype=float)
+        genre_results = pd.Series(index=genres, dtype=float)
+        for genre in genres:
+            genre_demographics[genre] = full_data.loc[full_data.loc[:, genre].astype(bool), "Women_Percentage"].mean()
+            genre_results[genre] = full_data.loc[full_data.loc[:, genre].astype(bool), "Women_Percentage"].unique().std()
 
-    genre_results = genre_results.sort_values()
-    genre_demographics = genre_demographics.loc[genre_results.index]
+        genre_results = genre_results.sort_values()
+        genre_demographics = genre_demographics.loc[genre_results.index]
 
-    # visualisation 2 subplots
-    import plotly.graph_objects as go
-    from plotly.subplots import make_subplots
-    fig = make_subplots(rows=1, cols=2,
-                        subplot_titles=("Frauenanteil in Stichprobe", "Std-Abw Frauenanteile in Cluster"))
-    fig.update_layout(title=f"Box-Plot: Geschlechter Balance ({title_suffix})", yaxis_title="Frauenanteil in Cluster")
-    fig.add_trace(go.Bar(x=genre_demographics.index, y=genre_demographics, name="Demographics"), row=1, col=1)
-    fig.add_trace(go.Bar(x=genre_results.index, y=genre_results, name="Results"), row=1, col=2)
-    fig.show()
+        # visualisation 2 subplots
 
-    # plot Boxplot
-    # family = full_data.loc[full_data.Familienfilm.astype(bool), "Women_Percentage"].sort_values().reset_index(drop=True)
+        fig = make_subplots(rows=1, cols=2,
+                            subplot_titles=("Frauenanteil in Stichprobe", "Std-Abw Frauenanteile in Cluster"))
+        fig.update_layout(title=f"Box-Plot: Geschlechter Balance ({title_suffix})", yaxis_title="Frauenanteil in Cluster")
+        fig.add_trace(go.Bar(x=genre_demographics.index, y=genre_demographics, name="Demographics"), row=1, col=1)
+        fig.add_trace(go.Bar(x=genre_results.index, y=genre_results, name="Results"), row=1, col=2)
+        fig.show()
 
-    plot_data = {}
-    for genre in genre_results.index:
-        plot_data[genre] = full_data.loc[
-            full_data.loc[:, genre].astype(bool), "Women_Percentage"].sort_values().reset_index(drop=True)
+        # plot Boxplot
+        # family = full_data.loc[full_data.Familienfilm.astype(bool), "Women_Percentage"].sort_values().reset_index(drop=True)
 
-    genres = sorted(plot_data, key=lambda x: plot_data[x].median())
-    fig = go.Figure()
-    # title
-    fig.update_layout(title=f"Box-Plot: Geschlechter Balance ({title_suffix})", xaxis_title="Genre",
-                      yaxis_title="Frauenanteil in Cluster")
+        plot_data = {}
+        for genre in genre_results.index:
+            plot_data[genre] = full_data.loc[
+                full_data.loc[:, genre].astype(bool), "Women_Percentage"].sort_values().reset_index(drop=True)
 
-    for genre in genres:
-        fig.add_trace(go.Box(y=plot_data[genre], name=genre))
-    fig.show()
+        genres = sorted(plot_data, key=lambda x: plot_data[x].median())
+        fig = go.Figure()
+        # title
+        fig.update_layout(title=f"Box-Plot: Geschlechter Balance ({title_suffix})", xaxis_title="Genre",
+                          yaxis_title="Frauenanteil in Cluster")
 
-plot_results(data_paths_noAR_noKR, "Allgemeine Pose")
-plot_results(data_paths_AR_noKR, "Distanz der Arme/Hände")
-plot_results(data_paths_AR_KR, "Distanz der Arme/Hände und Knie")
+        for genre in genres:
+            fig.add_trace(go.Box(y=plot_data[genre], name=genre))
+        fig.show()
 
+    plot_results(data_paths_noAR_noKR, "Allgemeine Pose")
+    plot_results(data_paths_AR_noKR, "Distanz der Arme/Hände")
+    plot_results(data_paths_AR_KR, "Distanz der Arme/Hände und Knie")
+
+genres = ["Action", "Dokumentarfilm", "Drama", "Komödie", "Krimi", "Liebesfilm"]
+# data_genres = [pd.read_pickle(PATH_TO_DATA) for genre in genres]
+
+fig = make_subplots(rows=1, cols=2,
+                    subplot_titles=("Frauenanteil in Stichprobe", "Std-Abw Frauenanteile in Cluster"))
+fig.update_layout(title=f"Geschlechter Balance (Allgemeine Pose)", yaxis_title="Frauenanteil in Cluster")
+
+mean_data, std_data = [], []
+for data, genre in zip(data_genres, genres):
+    mean_data.append(data.drop_duplicates(["Identifier", "cluster"]).Women_Percentage.mean())
+    std_data.append(data.drop_duplicates(["Identifier", "cluster"]).Women_Percentage.std())
+genre_data = pd.DataFrame({"Genre": genres, "Mean": mean_data, "Std": std_data}).sort_values("Std")
+
+fig.add_trace(go.Bar(x=genre_data.Genre, y=genre_data.Mean, name="Durschnittlicher Frauenanteil der Cluster"), row=1, col=1)
+fig.add_trace(go.Bar(x=genre_data.Genre, y=genre_data.Std, name="Standardabweichung in der Clusterverteilung"), row=1, col=2)
+fig.show()
 
 """Get Images representing center of clusters"""
 data_paths = data_paths_noAR_noKR + data_paths_AR_noKR + data_paths_AR_KR
