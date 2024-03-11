@@ -19,4 +19,4 @@ In den Modulen loader und analytics befinden sich Dateien mit A-D Präfixen. Die
 ### Visualisierungen
 
 Die Visualisierungen der Arbeit sind nur teilweise in dem Bericht enthalten. Es wurden außerdem große Visualisierungen von Bilder-Scatter-Plots erstellt. 
-Diese wurden pro Jahrzehnt, Genre sowie Methodik ( Winkel Clustering / Arm Distanz Clustering ) angefertigt und können auf [meiner Github Page](https://alj95.github.io/culture_analytics/index.html) angesehen werden.
+Diese wurden pro Jahrzehnt, Genre sowie Methodik ( Winkel Clustering / Arm Distanz Clustering ) angefertigt und können auf meiner [Github Page](https://alj95.github.io/culture_analytics/index.html) angesehen werden.
