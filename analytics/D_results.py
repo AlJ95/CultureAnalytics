@@ -1,3 +1,6 @@
+"""
+This script is used to visualize the results of the clustering. It contains the code for the final visualizations in the report.
+"""
 import math
 import time
 from random import random

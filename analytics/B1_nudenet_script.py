@@ -1,3 +1,6 @@
+"""
+This script is for the prediction of the sex of the actors in the images.
+"""
 import pandas as pd
 from nudenet import NudeDetector
 import cv2

@@ -1,11 +1,18 @@
+"""
+The purpose of this script was to understand the percentage of usable posters for this project as the results
+highly depend on the quality of the input data.
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 from utils.helper import OUTPUT_PATH
 import pandas as pd
 
+# define the lowest numbers of images per year to be displayed as green
 lowest_numbers_of_images_per_year = [100, 200, 250, 300]
 
+# load summarizes confidence data
 conf_df = pd.read_csv(OUTPUT_PATH / "VitPose_nr_of_images_by_confidence.csv", index_col=0)
+
 conf_df.columns = [f"{c}%" for c in conf_df.columns]
 conf_df.index = [f"{year - year % 5}-{year - (year % 5) + 4}" for year in conf_df.index]
 conf_df = conf_df.groupby(conf_df.index).sum()

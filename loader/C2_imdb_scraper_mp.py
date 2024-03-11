@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from scraper import IMDBScraper
+from C1_imdb_scraper import IMDBScraper
 from utils.helper import IMDB_IMAGE_DATA_SAMPLED_PATH, get_all_sampled_image_paths
 
 

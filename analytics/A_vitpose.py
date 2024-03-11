@@ -1,8 +1,5 @@
 """
 Pipeline for applying object detection on images and after that pose estimation.
-
-TODO: Pose Estimation only works on one person per image
-    -> Apply object detection first and then pose estimation on all persons.
 """
 
 import cv2
@@ -28,6 +25,7 @@ for year in range(2022, 1980, -1):
     # do 100s batches
     sub_path_batches = [sub_paths[i:i + 100] for i in range(0, len(sub_paths), 100)]
 
+    # for each poster
     for i, img_path in enumerate(sub_paths):
 
         if i % 25 == 0:
@@ -35,11 +33,13 @@ for year in range(2022, 1980, -1):
 
         img = cv2.imread(str(img_path))
 
+        # apply object detection
         results = detection_model(img, verbose=False)[0]
         boxes = results.boxes.xyxy
         clses = results.boxes.cls
         probs = results.boxes.conf
 
+        # for each detected object
         for i, cls, box, prob in zip(range(len(clses)), clses, boxes, probs):
             if cls != 0:
                 continue
@@ -47,10 +47,12 @@ for year in range(2022, 1980, -1):
             draw_img = img.copy()
 
             x1, y1, x2, y2 = box
+
             # crop image
             person_img = img[int(y1):int(y2), int(x1):int(x2)]
             cv2.rectangle(draw_img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 1)
 
+            # apply pose estimation
             keypoints = pose_estimation_model(person_img)
             num_keypoints = len(keypoints['points'])
 

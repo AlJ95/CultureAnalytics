@@ -1,4 +1,8 @@
-"""SCRAPING THE WEBSITE VINTED.DE FOR CLOTHES AND ACCESSORIES"""
+"""
+SCRAPING THE WEBSITE IMDB.com
+
+The class initializes with a list of IMDB ids and a year. It then iterates over the pages and saves the data to a csv file.
+"""
 import pandas as pd
 import selenium
 from selenium import webdriver

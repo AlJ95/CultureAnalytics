@@ -10,26 +10,25 @@ import itertools
 import plotly.express as px
 from scipy.spatial import distance
 
-from analytics.cleaning import read_metadata, get_all_genres
-from analytics.plot_image_collage import plot_image_collage
+from loader.D_metadata_cleaning import read_metadata, get_all_genres
 from utils.helper import get_image_path_by_imdb_id
 from pathlib import WindowsPath
 from sklearn.decomposition import PCA, TruncatedSVD
 from sklearn.manifold import TSNE
 from sklearn.metrics import calinski_harabasz_score, davies_bouldin_score, silhouette_score
-import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans, AgglomerativeClustering, SpectralClustering
 import pandas as pd
 import numpy as np
 from typing import List, Tuple
 from utils.helper import get_all_vitpose_pickle_paths, RESULTS_PATH
 
+# necessary, because I switch between python live interpreter and running the script
 try:
-    from angle import calculate_unit_circle_pos
+    from utils import calculate_unit_circle_pos, plot_image_collage
     from const import *
 except ModuleNotFoundError:
     from analytics.const import *
-    from analytics.angle import calculate_unit_circle_pos
+    from analytics.utils import calculate_unit_circle_pos, plot_image_collage
 
 
 def filter_pose_data(pose_data_raw, median_confidence=0.75, min_confidence=0.25):

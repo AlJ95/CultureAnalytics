@@ -2,7 +2,7 @@ import os
 import PIL
 import matplotlib.pyplot as plt
 import pandas as pd
-from loader.omdb_api import make_request
+from loader.B1_omdb_api import make_request
 from utils.helper import IMDB_IMAGE_DATA_SAMPLED_PATH, IMDB_DATA_POST_PROCESSED_PATH
 
 

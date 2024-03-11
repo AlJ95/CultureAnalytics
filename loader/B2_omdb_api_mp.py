@@ -1,5 +1,8 @@
+"""
+This script is used to make requests to the Amazon API in parallel.
+"""
 import multiprocessing as mp
-from loader.omdb_api import make_amazon_requests
+from loader.B1_omdb_api import make_amazon_requests
 
 
 if __name__ == '__main__':

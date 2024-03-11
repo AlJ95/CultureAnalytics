@@ -1,3 +1,7 @@
+"""
+This scripts provides functions to gather the urls for the images from IMDB and download them from amazon.
+"""
+
 import io
 import os
 import typing

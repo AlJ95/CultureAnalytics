@@ -1,3 +1,6 @@
+"""
+Helper functions for file paths and image paths
+"""
 from pathlib import Path
 from typing import List
 from functools import lru_cache

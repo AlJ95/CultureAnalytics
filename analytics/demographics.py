@@ -1,9 +1,13 @@
+"""
+This script analyzes the data demographics of the project. It is used to get an overview of the data
+"""
+
 import re
 
 import pandas as pd
 from pathlib import Path
 
-from analytics.knn import filter_pose_data
+from analytics.C_full_pipeline import filter_pose_data
 
 if __name__ == '__main__':
     """Data Demographics"""
@@ -63,7 +67,7 @@ if __name__ == '__main__':
           f"\nUnknown: {len(pose_sex_genre_movies.loc[pose_sex_genre_movies.sex == 'NA'])}")
 
     movies_with_full_information = pose_sex_genre_movies.assign(
-        movie_tid=lambda x: x.tid.str.replace('_\d*', '', regex=True)
+        movie_tid=lambda x: x.tid.str.replace(r'_\d*', '', regex=True)
     ).query("sex!='NA'")
     print("Movies with Genre and Sex Information and necessary Pose Confidence:"
           f"{movies_with_full_information.movie_tid.nunique()}")
@@ -75,9 +79,8 @@ if __name__ == '__main__':
           f"{genre_counts.sum()} genres. So movies have more than one genre."
           f"\n\nGenre Counts: {genre_counts}")
 
-
     tids_by_year = {i: list((data_path / "imdb_image_data_sampled" / str(i)).glob(f"*"))
-                                     for i in range(1981, 2022)}
+                    for i in range(1981, 2022)}
     tids_by_year = {v.stem: i for i, l in tids_by_year.items() for v in l}
     tids_by_year = pd.DataFrame([tids_by_year]).T
     tids_by_year.columns = ["year"]
@@ -92,7 +95,7 @@ if __name__ == '__main__':
     )
 
     # Join Image Cut Data and Save it for Analysis
-    sampled_data = pd.DataFrame([{k:re.sub(r"_\d*", "", k) for k, v in pose_data_filtered.items()}]).T.reset_index()
+    sampled_data = pd.DataFrame([{k: re.sub(r"_\d*", "", k) for k, v in pose_data_filtered.items()}]).T.reset_index()
     sampled_data.columns = ["join_tid", "tid"]
     sampled_data = sampled_data.astype({"join_tid": str})
 
@@ -106,8 +109,7 @@ if __name__ == '__main__':
     for r in ["1982-1991", "1992-2001", "2002-2011", "2012-2021"]:
         for g in ["F", "M"]:
             sd = pd.concat([sd, sampled_data.query(f"Jahrzehnt=='{r}' and Geschlecht=='{g}'").sample(186)])
-     sd.to_pickle("./data/sample_data.pickle")
-
+    sd.to_pickle("./data/sample_data.pickle")
 
     images_by_year10_and_sex_count = (
         sampled_movies_with_full_information
@@ -141,6 +143,8 @@ if __name__ == '__main__':
     fig.add_trace(px.bar(sex_result_count).data[0], row=1, col=1)
     # fig.add_trace(px.bar(images_by_year10_and_sex_count).data[0], row=1, col=2)
     # stacked bar chart
-    fig.add_trace(px.bar(images_by_year10_and_sex_count, x="Jahrzehnt", y="Anzahl", color="Geschlecht").data[0], row=1, col=2)
-    fig.add_trace(px.bar(images_by_year10_and_sex_count, x="Jahrzehnt", y="Anzahl", color="Geschlecht").data[1], row=1, col=2)
+    fig.add_trace(px.bar(images_by_year10_and_sex_count, x="Jahrzehnt", y="Anzahl", color="Geschlecht").data[0], row=1,
+                  col=2)
+    fig.add_trace(px.bar(images_by_year10_and_sex_count, x="Jahrzehnt", y="Anzahl", color="Geschlecht").data[1], row=1,
+                  col=2)
     fig.show()

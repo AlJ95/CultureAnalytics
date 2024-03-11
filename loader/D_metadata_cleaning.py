@@ -1,3 +1,6 @@
+"""
+This script is used to extract the genres and ratings from the html files.
+"""
 from pathlib import Path
 
 import pandas as pd

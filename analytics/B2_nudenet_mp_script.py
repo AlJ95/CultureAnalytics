@@ -1,6 +1,9 @@
+"""
+This script is for predicting the sex in parallel. See B1_nudenet_script.py for the single threaded version.
+"""
 import multiprocessing as mp
 from pathlib import Path
-from nudenet_script import guess_sex
+from B1_nudenet_script import guess_sex
 
 if __name__ == '__main__':
     print(mp.cpu_count())

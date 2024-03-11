@@ -1,7 +1,5 @@
 """
 This script is used to integrate the data from the IMDB data set.
-
-TODO: Add missing data from the IMDB data set.
 """
 
 import pandas as pd
